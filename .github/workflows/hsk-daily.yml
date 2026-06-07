@@ -21,6 +21,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Debug secrets
+        run: echo "SUBSCRIBER_IDS length=${#SUBSCRIBER_IDS}"
+        env:
+          SUBSCRIBER_IDS: ${{ secrets.SUBSCRIBER_IDS }}
+
       - name: Run daily lesson script
         run: python daily_lesson.py
         env:
