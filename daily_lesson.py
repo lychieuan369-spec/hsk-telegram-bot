@@ -132,7 +132,14 @@ def process_subscriber(sub: dict, all_words: list):
 
 def main():
     logger.info("Starting daily lesson dispatch...")
-    subscribers = db.get_all_active_subscribers()
+    # Support hardcoded subscribers via env var (comma-separated chat_ids)
+    # e.g. SUBSCRIBER_IDS=123456789,987654321
+    env_ids = os.environ.get("SUBSCRIBER_IDS", "")
+    if env_ids:
+        subscribers = [{"chat_id": int(cid.strip()), "current_hsk_level": 1, "current_word_index": 0}
+                       for cid in env_ids.split(",") if cid.strip()]
+    else:
+        subscribers = db.get_all_active_subscribers()
     logger.info("Found %d active subscribers.", len(subscribers))
 
     if not subscribers:
