@@ -42,6 +42,35 @@ def send_message(chat_id: int, text: str, parse_mode: str = "HTML") -> bool:
         return False
 
 
+def send_voice(chat_id: int, word: dict) -> bool:
+    """Send TTS pronunciation audio for a Chinese word."""
+    import tempfile
+    from gtts import gTTS
+    # Speak hanzi in Chinese, then pinyin in Vietnamese
+    tts_text = f"{word['hanzi']}，{word['pinyin']}"
+    tts = gTTS(text=tts_text, lang='zh-cn', slow=True)
+    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
+        tmp_path = f.name
+    try:
+        tts.save(tmp_path)
+        url = f"{TELEGRAM_API}/sendVoice"
+        with open(tmp_path, 'rb') as audio:
+            resp = requests.post(url, data={"chat_id": chat_id}, files={"voice": audio}, timeout=30)
+        if not resp.ok:
+            logger.error("sendVoice failed for %s: %s", chat_id, resp.text)
+            return False
+        return True
+    except Exception as e:
+        logger.error("sendVoice exception for %s: %s", chat_id, e)
+        return False
+    finally:
+        import os as _os
+        try:
+            _os.unlink(tmp_path)
+        except Exception:
+            pass
+
+
 def send_quiz(chat_id: int, word: dict, all_words: list) -> bool:
     """Send a quiz inline keyboard message."""
     quiz_data = generate_quiz_options(word, all_words)
@@ -114,6 +143,9 @@ def process_subscriber(sub: dict, all_words: list):
     if not ok:
         logger.error("Failed to send lesson to chat_id=%s", chat_id)
         return
+
+    # 1b. Send pronunciation audio
+    send_voice(chat_id, word)
 
     # 2. Send quiz
     send_quiz(chat_id, word, all_words)
