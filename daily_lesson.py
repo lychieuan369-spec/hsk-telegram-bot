@@ -71,6 +71,35 @@ def send_voice(chat_id: int, word: dict) -> bool:
             pass
 
 
+def send_stroke_order(chat_id: int, word: dict) -> bool:
+    """Send stroke order GIF for a Chinese character via animCJK CDN."""
+    hanzi = word['hanzi']
+    # For multi-character words, use only the first character
+    char = hanzi[0]
+    code = format(ord(char), '05x')
+    gif_url = f"https://raw.githubusercontent.com/parsimonhi/animCJK/master/svgsJa/{code}.svg"
+
+    # Try animCJK SVG first, fallback to stroke order info
+    url = f"{TELEGRAM_API}/sendPhoto"
+    # Use stroke order from stroke-order.info as photo URL
+    photo_url = f"https://www.strokeorder.info/assets/bishun/gif/{format(ord(char), 'x').upper()}.gif"
+
+    payload = {
+        "chat_id": chat_id,
+        "photo": photo_url,
+        "caption": f"✍️ Thứ tự nét: {char}",
+    }
+    try:
+        resp = requests.post(url, json=payload, timeout=15)
+        if not resp.ok:
+            logger.warning("sendPhoto stroke order failed for %s: %s", chat_id, resp.text)
+            return False
+        return True
+    except Exception as e:
+        logger.error("sendPhoto exception for %s: %s", chat_id, e)
+        return False
+
+
 def send_quiz(chat_id: int, word: dict, all_words: list) -> bool:
     """Send a quiz inline keyboard message."""
     quiz_data = generate_quiz_options(word, all_words)
@@ -146,6 +175,9 @@ def process_subscriber(sub: dict, all_words: list):
 
     # 1b. Send pronunciation audio
     send_voice(chat_id, word)
+
+    # 1c. Send stroke order image
+    send_stroke_order(chat_id, word)
 
     # 2. Send quiz
     send_quiz(chat_id, word, all_words)
