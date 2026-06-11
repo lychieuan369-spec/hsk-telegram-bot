@@ -71,33 +71,114 @@ def send_voice(chat_id: int, word: dict) -> bool:
             pass
 
 
+def _get_cjk_font(size: int = 160):
+    """Return a PIL ImageFont for CJK characters, downloading Noto if needed."""
+    from PIL import ImageFont
+    import tempfile, os as _os
+
+    # Check system fonts first (Windows)
+    system_fonts = [
+        r"C:\Windows\Fonts\simsun.ttc",
+        r"C:\Windows\Fonts\simhei.ttf",
+        r"C:\Windows\Fonts\msyh.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSansCJKsc-Regular.otf",
+    ]
+    for fp in system_fonts:
+        if _os.path.exists(fp):
+            try:
+                return ImageFont.truetype(fp, size)
+            except Exception:
+                continue
+
+    # Download Noto Sans CJK SC from Google Fonts CDN to temp
+    noto_cache = _os.path.join(tempfile.gettempdir(), "NotoSansSC-Regular.ttf")
+    if not _os.path.exists(noto_cache):
+        font_url = "https://github.com/googlefonts/noto-cjk/raw/main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf"
+        try:
+            r = requests.get(font_url, timeout=60)
+            if r.ok:
+                with open(noto_cache, "wb") as f:
+                    f.write(r.content)
+        except Exception as e:
+            logger.warning("Font download failed: %s", e)
+    if _os.path.exists(noto_cache):
+        try:
+            return ImageFont.truetype(noto_cache, size)
+        except Exception:
+            pass
+    return None
+
+
 def send_stroke_order(chat_id: int, word: dict) -> bool:
-    """Send stroke order GIF for a Chinese character via animCJK CDN."""
-    hanzi = word['hanzi']
-    # For multi-character words, use only the first character
-    char = hanzi[0]
-    code = format(ord(char), '05x')
-    gif_url = f"https://raw.githubusercontent.com/parsimonhi/animCJK/master/svgsJa/{code}.svg"
-
-    # Try animCJK SVG first, fallback to stroke order info
-    url = f"{TELEGRAM_API}/sendPhoto"
-    # Use stroke order from stroke-order.info as photo URL
-    photo_url = f"https://www.strokeorder.info/assets/bishun/gif/{format(ord(char), 'x').upper()}.gif"
-
-    payload = {
-        "chat_id": chat_id,
-        "photo": photo_url,
-        "caption": f"✍️ Thứ tự nét: {char}",
-    }
+    """Send a character card image (large hanzi on white background) as a photo."""
+    import tempfile, os as _os
     try:
-        resp = requests.post(url, json=payload, timeout=15)
+        from PIL import Image, ImageDraw
+    except ImportError:
+        logger.warning("Pillow not installed; skipping stroke order image")
+        return False
+
+    hanzi = word['hanzi']
+    char = hanzi[0]
+
+    # Build a 300x300 white card with the character centered
+    img_size = 300
+    img = Image.new("RGB", (img_size, img_size), color=(255, 255, 255))
+    draw = ImageDraw.Draw(img)
+
+    font = _get_cjk_font(180)
+    if font is None:
+        logger.warning("No CJK font available; skipping stroke order image")
+        return False
+
+    # Center the character
+    try:
+        bbox = draw.textbbox((0, 0), char, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        x = (img_size - text_w) // 2 - bbox[0]
+        y = (img_size - text_h) // 2 - bbox[1]
+    except AttributeError:
+        # Older Pillow
+        text_w, text_h = draw.textsize(char, font=font)
+        x = (img_size - text_w) // 2
+        y = (img_size - text_h) // 2
+
+    draw.text((x, y), char, fill=(30, 30, 30), font=font)
+
+    # Add a light grid to suggest stroke guidance
+    grid_color = (220, 220, 220)
+    mid = img_size // 2
+    draw.line([(mid, 0), (mid, img_size)], fill=grid_color, width=1)
+    draw.line([(0, mid), (img_size, mid)], fill=grid_color, width=1)
+    draw.rectangle([0, 0, img_size - 1, img_size - 1], outline=(180, 180, 180), width=2)
+
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+        tmp_path = f.name
+    try:
+        img.save(tmp_path, "PNG")
+        url = f"{TELEGRAM_API}/sendPhoto"
+        with open(tmp_path, 'rb') as img_file:
+            resp = requests.post(
+                url,
+                data={"chat_id": chat_id, "caption": f"✍️ Han tu hom nay: {char} ({word['pinyin']})"},
+                files={"photo": img_file},
+                timeout=30,
+            )
         if not resp.ok:
-            logger.warning("sendPhoto stroke order failed for %s: %s", chat_id, resp.text)
+            logger.warning("sendPhoto character card failed for %s: %s", chat_id, resp.text)
             return False
         return True
     except Exception as e:
-        logger.error("sendPhoto exception for %s: %s", chat_id, e)
+        logger.error("sendPhoto character card exception for %s: %s", chat_id, e)
         return False
+    finally:
+        try:
+            _os.unlink(tmp_path)
+        except Exception:
+            pass
 
 
 def send_quiz(chat_id: int, word: dict, all_words: list) -> bool:
