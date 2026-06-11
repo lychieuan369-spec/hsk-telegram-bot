@@ -28,9 +28,14 @@ Cấp độ: HSK {word['hsk_level']}
 Viết theo format CHÍNH XÁC này (dùng emoji, ngắn gọn, hấp dẫn):
 
 📖 Chữ hôm nay: {word['hanzi']} ({word['pinyin']}) — HSK {word['hsk_level']}
+🔸 Phồn thể: [chữ phồn thể nếu khác giản thể, nếu giống thì ghi "giống giản thể"]
+🔹 Giản thể: {word['hanzi']}
 
-🔍 Chiết tự:
-[Phân tích bộ thủ, nguồn gốc ý nghĩa từng phần, liên kết logic]
+🔍 Chiết tự phồn thể:
+[Phân tích bộ thủ chữ phồn thể — nguồn gốc, ý nghĩa từng bộ phận]
+
+✂️ Giản thể hóa:
+[Giải thích chữ phồn thể đã được giản lược như thế nào, bộ phận nào bị thay đổi/lược bỏ]
 
 📝 Nghĩa: {word['meaning']}
 🗣️ Phiên âm: {word['pinyin']}
@@ -42,7 +47,7 @@ Viết theo format CHÍNH XÁC này (dùng emoji, ngắn gọn, hấp dẫn):
 
     response = get_client().chat.completions.create(
         model="llama-3.1-8b-instant",
-        max_tokens=500,
+        max_tokens=800,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
