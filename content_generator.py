@@ -1,23 +1,23 @@
 """
-Content generator using Claude API (claude-haiku-4-5-20251001).
+Content generator using Groq API (llama-3.1-8b-instant).
 Generates chiết tự lesson content and quiz options for HSK words.
 """
 
 import os
 import random
-import anthropic
+from openai import OpenAI
 
 _client = None
 
 def get_client():
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+        _client = OpenAI(api_key=os.environ.get("GROQ_API_KEY", ""), base_url="https://api.groq.com/openai/v1")
     return _client
 
 
 def generate_lesson(word: dict) -> str:
-    """Generate daily lesson content for a Chinese character using Claude."""
+    """Generate daily lesson content for a Chinese character using Groq."""
     prompt = f"""Bạn là chuyên gia chiết tự chữ Hán. Viết nội dung học tiếng Trung cho chữ:
 
 Chữ Hán: {word['hanzi']}
@@ -40,12 +40,12 @@ Viết theo format CHÍNH XÁC này (dùng emoji, ngắn gọn, hấp dẫn):
 
 ⚡ Mẹo: [1 tip học nhanh hoặc liên kết với từ liên quan]"""
 
-    msg = get_client().messages.create(
-        model="claude-haiku-4-5-20251001",
+    response = get_client().chat.completions.create(
+        model="llama-3.1-8b-instant",
         max_tokens=500,
         messages=[{"role": "user", "content": prompt}]
     )
-    return msg.content[0].text
+    return response.choices[0].message.content
 
 
 def generate_quiz_options(word: dict, all_words: list) -> dict:
