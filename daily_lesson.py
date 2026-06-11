@@ -112,48 +112,117 @@ def _get_cjk_font(size: int = 160):
 
 
 def send_stroke_order(chat_id: int, word: dict) -> bool:
-    """Send a character card image (large hanzi on white background) as a photo."""
+    """Send a styled character card with stroke count and color."""
     import tempfile, os as _os
     try:
         from PIL import Image, ImageDraw
     except ImportError:
-        logger.warning("Pillow not installed; skipping stroke order image")
+        logger.warning("Pillow not installed; skipping character card")
         return False
 
     hanzi = word['hanzi']
     char = hanzi[0]
+    pinyin = word.get('pinyin', '')
+    meaning = word.get('meaning', '')
+    hsk_level = word.get('hsk_level', 1)
 
-    # Build a 300x300 white card with the character centered
-    img_size = 300
-    img = Image.new("RGB", (img_size, img_size), color=(255, 255, 255))
+    # Stroke count lookup (common HSK1-2 chars; fallback to unicode data)
+    try:
+        import unicodedata
+        # Try to get stroke count from CJK Unified Ideographs
+        stroke_count = None
+        # Use a simple lookup for common chars, else estimate
+        STROKE_MAP = {
+            '一':1,'二':2,'三':3,'四':5,'五':4,'六':4,'七':2,'八':2,'九':2,'十':2,
+            '人':2,'大':3,'小':3,'中':4,'国':8,'日':4,'月':4,'水':4,'火':4,'山':3,
+            '口':3,'手':4,'心':4,'木':4,'土':3,'金':8,'女':3,'子':3,'门':3,'车':4,
+            '马':3,'鸟':5,'鱼':8,'学':8,'生':5,'工':3,'天':4,'地':6,'年':6,'上':3,
+            '下':3,'左':5,'右':5,'前':9,'后':6,'来':7,'去':5,'是':9,'有':6,'在':6,
+            '不':4,'也':3,'都':11,'和':8,'的':8,'了':2,'我':7,'你':7,'他':5,'她':6,
+            '们':5,'这':7,'那':6,'什':4,'么':3,'吗':6,'呢':8,'啊':10,'哦':9,'好':6,
+            '多':6,'少':4,'大':3,'小':3,'高':10,'低':7,'长':4,'短':12,'新':13,'老':6,
+            '杯':8,'子':3,'水':4,'喝':12,'吃':6,'饭':7,'菜':11,'肉':6,'鸡':7,'鱼':8,
+        }
+        stroke_count = STROKE_MAP.get(char)
+        if stroke_count is None:
+            # Rough estimate based on unicode block
+            cp = ord(char)
+            if 0x4E00 <= cp <= 0x9FFF:
+                stroke_count = 8  # average CJK
+    except Exception:
+        stroke_count = None
+
+    # Color scheme by HSK level
+    LEVEL_COLORS = {
+        1: ((255, 236, 153), (255, 180, 0)),    # yellow
+        2: ((153, 230, 255), (0, 150, 255)),    # blue
+        3: ((180, 255, 180), (0, 180, 80)),     # green
+        4: ((255, 180, 180), (220, 50, 50)),    # red
+        5: ((220, 180, 255), (140, 50, 220)),   # purple
+        6: ((255, 200, 160), (220, 100, 0)),    # orange
+    }
+    bg_light, accent = LEVEL_COLORS.get(hsk_level, LEVEL_COLORS[1])
+
+    img_size = 400
+    img = Image.new("RGB", (img_size, img_size), color=bg_light)
     draw = ImageDraw.Draw(img)
 
-    font = _get_cjk_font(180)
-    if font is None:
-        logger.warning("No CJK font available; skipping stroke order image")
+    # Gradient-like background: draw accent rectangle at bottom
+    draw.rectangle([0, img_size - 80, img_size, img_size], fill=accent)
+
+    # Grid lines (calligraphy style)
+    grid_color = (200, 200, 200, 128)
+    mid = img_size // 2
+    # Draw dashed-style grid by drawing short segments
+    for i in range(0, img_size - 80, 10):
+        if (i // 10) % 2 == 0:
+            draw.line([(mid, i), (mid, i + 8)], fill=(210, 210, 210), width=1)
+            draw.line([(i, mid - 40), (i + 8, mid - 40)], fill=(210, 210, 210), width=1)
+    # Solid cross lines
+    draw.line([(mid, 0), (mid, img_size - 80)], fill=(200, 200, 200), width=1)
+    draw.line([(0, mid - 40), (img_size, mid - 40)], fill=(200, 200, 200), width=1)
+    # Border
+    draw.rectangle([2, 2, img_size - 3, img_size - 80 - 2], outline=accent, width=3)
+
+    # Main character
+    font_big = _get_cjk_font(200)
+    if font_big is None:
+        logger.warning("No CJK font; skipping character card")
         return False
 
-    # Center the character
     try:
-        bbox = draw.textbbox((0, 0), char, font=font)
-        text_w = bbox[2] - bbox[0]
-        text_h = bbox[3] - bbox[1]
-        x = (img_size - text_w) // 2 - bbox[0]
-        y = (img_size - text_h) // 2 - bbox[1]
+        bbox = draw.textbbox((0, 0), char, font=font_big)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        x = (img_size - tw) // 2 - bbox[0]
+        y = (img_size - 80 - th) // 2 - bbox[1] - 10
     except AttributeError:
-        # Older Pillow
-        text_w, text_h = draw.textsize(char, font=font)
-        x = (img_size - text_w) // 2
-        y = (img_size - text_h) // 2
+        tw, th = draw.textsize(char, font=font_big)
+        x = (img_size - tw) // 2
+        y = (img_size - 80 - th) // 2 - 10
 
-    draw.text((x, y), char, fill=(30, 30, 30), font=font)
+    # Shadow
+    draw.text((x + 3, y + 3), char, fill=(0, 0, 0, 60), font=font_big)
+    draw.text((x, y), char, fill=(30, 30, 30), font=font_big)
 
-    # Add a light grid to suggest stroke guidance
-    grid_color = (220, 220, 220)
-    mid = img_size // 2
-    draw.line([(mid, 0), (mid, img_size)], fill=grid_color, width=1)
-    draw.line([(0, mid), (img_size, mid)], fill=grid_color, width=1)
-    draw.rectangle([0, 0, img_size - 1, img_size - 1], outline=(180, 180, 180), width=2)
+    # Bottom bar text
+    font_small = _get_cjk_font(22)
+    if font_small:
+        # Pinyin + meaning on left
+        bottom_text = f"{pinyin}  |  {meaning}"
+        draw.text((12, img_size - 68), bottom_text, fill=(255, 255, 255), font=font_small)
+        # HSK badge on right
+        hsk_text = f"HSK {hsk_level}"
+        try:
+            hbbox = draw.textbbox((0, 0), hsk_text, font=font_small)
+            hw = hbbox[2] - hbbox[0]
+        except AttributeError:
+            hw, _ = draw.textsize(hsk_text, font=font_small)
+        draw.text((img_size - hw - 12, img_size - 68), hsk_text, fill=(255, 255, 255), font=font_small)
+        # Stroke count
+        if stroke_count:
+            sc_text = f"✍ {stroke_count} net"
+            draw.text((12, img_size - 40), sc_text, fill=(255, 255, 255), font=font_small)
 
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
         tmp_path = f.name
@@ -163,16 +232,16 @@ def send_stroke_order(chat_id: int, word: dict) -> bool:
         with open(tmp_path, 'rb') as img_file:
             resp = requests.post(
                 url,
-                data={"chat_id": chat_id, "caption": f"✍️ Han tu hom nay: {char} ({word['pinyin']})"},
+                data={"chat_id": chat_id, "caption": f"✍️ {char} ({pinyin}) — {meaning}"},
                 files={"photo": img_file},
                 timeout=30,
             )
         if not resp.ok:
-            logger.warning("sendPhoto character card failed for %s: %s", chat_id, resp.text)
+            logger.warning("sendPhoto card failed for %s: %s", chat_id, resp.text)
             return False
         return True
     except Exception as e:
-        logger.error("sendPhoto character card exception for %s: %s", chat_id, e)
+        logger.error("sendPhoto card exception for %s: %s", chat_id, e)
         return False
     finally:
         try:
