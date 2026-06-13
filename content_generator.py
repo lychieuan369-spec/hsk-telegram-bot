@@ -1,13 +1,18 @@
 """
-Content generator using Groq API (llama-3.1-8b-instant).
-Generates chiết tự lesson content and quiz options for HSK words.
+Content generator for HSK words.
+Loads pre-generated chiết tự lesson content from hsk_content.json.
+Falls back to Groq API (llama-3.3-70b-versatile) if word not found in cache.
 """
 
 import os
+import json
+import re
 import random
 from openai import OpenAI
 
 _client = None
+_hsk_content = None
+
 
 def get_client():
     global _client
@@ -16,8 +21,27 @@ def get_client():
     return _client
 
 
+def _load_hsk_content() -> dict:
+    global _hsk_content
+    if _hsk_content is None:
+        json_path = os.path.join(os.path.dirname(__file__), "hsk_content.json")
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                _hsk_content = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            _hsk_content = {}
+    return _hsk_content
+
+
 def generate_lesson(word: dict) -> str:
-    """Generate daily lesson content for a Chinese character using Groq."""
+    """Generate daily lesson content for a Chinese character.
+
+    Loads from hsk_content.json first. Falls back to Groq API if not found.
+    """
+    content_map = _load_hsk_content()
+    if word["hanzi"] in content_map:
+        return content_map[word["hanzi"]]
+
     prompt = f"""Bạn là chuyên gia chiết tự chữ Hán. Viết nội dung học tiếng Trung cho chữ:
 
 Chữ Hán: {word['hanzi']}
@@ -66,7 +90,6 @@ Ví dụ:
         messages=[{"role": "user", "content": prompt}]
     )
     content = response.choices[0].message.content
-    import re
     content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
     content = content.replace('**', '')
     return content
