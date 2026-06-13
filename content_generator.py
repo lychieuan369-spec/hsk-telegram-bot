@@ -61,7 +61,7 @@ Ví dụ:
 [1 câu ghi nhớ ngắn, sáng tạo, dễ thuộc bằng tiếng Việt — liên kết hình ảnh bộ thủ]"""
 
     response = get_client().chat.completions.create(
-        model="gemma2-9b-it",
+        model="meta-llama/llama-4-maverick-17b-128e-instruct",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
