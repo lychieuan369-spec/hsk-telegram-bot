@@ -61,11 +61,14 @@ Ví dụ:
 [1 câu ghi nhớ ngắn, sáng tạo, dễ thuộc bằng tiếng Việt — liên kết hình ảnh bộ thủ]"""
 
     response = get_client().chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="qwen/qwen3-32b",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
+    import re
+    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+    return content
 
 
 def generate_quiz_options(word: dict, all_words: list) -> dict:
