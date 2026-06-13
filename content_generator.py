@@ -12,7 +12,7 @@ _client = None
 def get_client():
     global _client
     if _client is None:
-        _client = OpenAI(api_key=os.environ.get("DEEPSEEK_API_KEY", ""), base_url="https://api.deepseek.com")
+        _client = OpenAI(api_key=os.environ.get("GROQ_API_KEY", ""), base_url="https://api.groq.com/openai/v1")
     return _client
 
 
@@ -61,7 +61,7 @@ Ví dụ:
 [1 câu ghi nhớ ngắn, sáng tạo, dễ thuộc bằng tiếng Việt — liên kết hình ảnh bộ thủ]"""
 
     response = get_client().chat.completions.create(
-        model="deepseek-chat",
+        model="llama-3.3-70b-versatile",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
