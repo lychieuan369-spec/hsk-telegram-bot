@@ -61,7 +61,7 @@ Ví dụ:
 [1 câu ghi nhớ ngắn, sáng tạo, dễ thuộc bằng tiếng Việt — liên kết hình ảnh bộ thủ]"""
 
     response = get_client().chat.completions.create(
-        model="deepseek-r1-distill-llama-70b",
+        model="llama-3.3-70b-versatile",
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
