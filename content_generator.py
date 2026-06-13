@@ -25,25 +25,40 @@ Pinyin: {word['pinyin']}
 Nghĩa: {word['meaning']}
 Cấp độ: HSK {word['hsk_level']}
 
-Viết theo format CHÍNH XÁC này (dùng emoji, ngắn gọn, hấp dẫn):
+Viết theo format CHÍNH XÁC này:
 
-📖 Chữ hôm nay: {word['hanzi']} ({word['pinyin']}) — HSK {word['hsk_level']}
-🔸 Phồn thể: [chữ phồn thể nếu khác giản thể, nếu giống thì ghi "giống giản thể"]
-🔹 Giản thể: {word['hanzi']}
-
-🔍 Chiết tự phồn thể:
-[Phân tích bộ thủ chữ phồn thể — nguồn gốc, ý nghĩa từng bộ phận]
-
-✂️ Giản thể hóa:
-[Giải thích chữ phồn thể đã được giản lược như thế nào, bộ phận nào bị thay đổi/lược bỏ]
-
+📖 **Chữ hôm nay: {word['hanzi']} ({word['pinyin']}) — HSK {word['hsk_level']}**
 📝 Nghĩa: {word['meaning']}
-🗣️ Phiên âm: {word['pinyin']}
-💬 Ví dụ: [1 câu ví dụ thực tế có pinyin và nghĩa tiếng Việt]
 
-🧠 Ghi nhớ: [1 câu mnemonic ngắn, dễ nhớ, sáng tạo bằng tiếng Việt]
+---
 
-⚡ Mẹo: [1 tip học nhanh hoặc liên kết với từ liên quan]"""
+🔍 **Chiết tự chữ phồn thể:**
+[Liệt kê từng bộ thủ theo dạng bullet, mỗi bộ gồm: ký tự bộ thủ + (tên Hán Việt): nghĩa nguyên gốc → tượng trưng cho điều gì]
+Ví dụ:
+• 爪 (Trảo): móng vuốt → tượng trưng cho sự nắm giữ, bao bọc
+• 冖 (Mịch): che đậy → bảo vệ bên trong
+• 心 (Tâm): trái tim → cảm xúc, tình cảm
+• 友 (Hữu): bạn bè → hành động yêu thương, gắn bó
+
+✂️ **Chữ giản thể:** [chữ giản thể]
+• Bộ thủ giữ lại: [liệt kê bộ nào còn]
+• Bộ thủ lược bỏ: [liệt kê bộ nào mất, lý do nếu biết]
+
+💡 **Câu chuyện chiết tự:**
+[1-2 câu kết nối tất cả bộ thủ thành narrative có nghĩa, giải thích TẠI SAO chữ này mang nghĩa đó. Dùng bold cho tên bộ thủ.]
+
+🗣️ **Hướng dẫn đọc:**
+• Thanh điệu: thanh [số] — [tên thanh: bằng/sắc/hỏi/nặng] — [mô tả đường nét: ngang/lên/xuống-lên/xuống thẳng]
+• Cách đọc: [giải thích phát âm initial + final cụ thể, ví dụ: "zh" đọc như "tr" tiếng Việt nhưng lưỡi cuộn]
+• Bẫy phát âm: [người Việt hay sai chỗ nào — ví dụ nhầm x/sh, q/ch, lẫn lộn thanh 2-3]
+• Gần giống tiếng Việt: [âm nào trong tiếng Việt gần nhất để liên tưởng — ví dụ: "ài" ≈ "ái" trong "yêu ái"]
+
+💬 **Ví dụ thực tế:**
+[câu ví dụ tiếng Trung] ([pinyin])
+→ [nghĩa tiếng Việt]
+
+🧠 **Mnemonic:**
+[1 câu ghi nhớ ngắn, sáng tạo, dễ thuộc bằng tiếng Việt — liên kết hình ảnh bộ thủ]"""
 
     response = get_client().chat.completions.create(
         model="llama-3.1-8b-instant",
