@@ -336,7 +336,11 @@ def process_subscriber(sub: dict, all_words: list):
     from hsk_words import get_words_for_level
     level_words = get_words_for_level(level)
     new_index = (index + 1) % len(level_words) if level_words else 0
-    db.update_word_index(chat_id, new_index)
+    try:
+        db.update_word_index(chat_id, new_index)
+    except Exception as e:
+        logger.warning("db.update_word_index failed for %s: %s", chat_id, e)
+    _write_index_update(chat_id, new_index)
 
     # 4. Update streak
     db.update_streak(chat_id)
@@ -344,16 +348,39 @@ def process_subscriber(sub: dict, all_words: list):
     logger.info("Done for chat_id=%s. Next index=%s", chat_id, new_index)
 
 
+def _gh_var_index(chat_id: int) -> int:
+    """Read persisted word index from env var set by workflow (WORD_INDEX_<chat_id>)."""
+    val = os.environ.get(f"WORD_INDEX_{chat_id}", "0").strip()
+    try:
+        return int(val)
+    except ValueError:
+        return 0
+
+
+def _write_index_update(chat_id: int, new_index: int):
+    """Append updated index to /tmp/word_index_updates.txt for workflow to persist."""
+    with open("/tmp/word_index_updates.txt", "a") as f:
+        f.write(f"{chat_id}={new_index}\n")
+
+
 def main():
     logger.info("Starting daily lesson dispatch...")
     # Support hardcoded subscribers via env var (comma-separated chat_ids)
     # e.g. SUBSCRIBER_IDS=123456789,987654321
     env_ids = os.environ.get("SUBSCRIBER_IDS", "")
+    use_gh_vars = bool(env_ids)
     if env_ids:
-        subscribers = [{"chat_id": int(cid.strip()), "current_hsk_level": 1, "current_word_index": 0}
-                       for cid in env_ids.split(",") if cid.strip()]
+        subscribers = [
+            {
+                "chat_id": int(cid.strip()),
+                "current_hsk_level": 1,
+                "current_word_index": _gh_var_index(int(cid.strip())),
+            }
+            for cid in env_ids.split(",") if cid.strip()
+        ]
     else:
         subscribers = db.get_all_active_subscribers()
+        use_gh_vars = False
     logger.info("Found %d active subscribers.", len(subscribers))
 
     if not subscribers:

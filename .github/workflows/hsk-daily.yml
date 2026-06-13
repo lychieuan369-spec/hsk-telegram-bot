@@ -26,6 +26,18 @@ jobs:
         env:
           SUBSCRIBER_IDS: ${{ secrets.SUBSCRIBER_IDS }}
 
+      - name: Load word indexes from GitHub Variables
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SUBSCRIBER_IDS: ${{ secrets.SUBSCRIBER_IDS }}
+        run: |
+          for cid in $(echo "$SUBSCRIBER_IDS" | tr ',' '\n'); do
+            cid=$(echo "$cid" | xargs)
+            [ -z "$cid" ] && continue
+            val=$(gh variable get "WORD_INDEX_${cid}" 2>/dev/null || echo "0")
+            echo "WORD_INDEX_${cid}=${val}" >> "$GITHUB_ENV"
+          done
+
       - name: Run daily lesson script
         run: python daily_lesson.py
         env:
@@ -33,3 +45,16 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           SUBSCRIBER_IDS: ${{ secrets.SUBSCRIBER_IDS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Save word indexes to GitHub Variables
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -f /tmp/word_index_updates.txt ] || exit 0
+          while IFS='=' read -r cid idx; do
+            [ -z "$cid" ] && continue
+            gh variable set "WORD_INDEX_${cid}" --body "$idx"
+          done < /tmp/word_index_updates.txt
