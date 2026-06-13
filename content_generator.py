@@ -62,7 +62,7 @@ Ví dụ:
 
     response = get_client().chat.completions.create(
         model="mixtral-8x7b-32768",
-        max_tokens=800,
+        max_tokens=1500,
         messages=[{"role": "user", "content": prompt}]
     )
     return response.choices[0].message.content
