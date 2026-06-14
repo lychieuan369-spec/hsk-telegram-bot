@@ -239,24 +239,24 @@ async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if ADMIN_CHAT_ID:
         admin_msg = (
-            f"💳 *Yêu cầu nâng cấp Premium*\n\n"
+            f"💳 <b>Yêu cầu nâng cấp Premium</b>\n\n"
             f"User: {user.first_name} (@{user.username or 'N/A'})\n"
-            f"Chat ID: `{chat_id}`\n\n"
+            f"Chat ID: <code>{chat_id}</code>\n\n"
             f"Để kích hoạt, dùng lệnh:\n"
-            f"`/approve {chat_id}`"
+            f"<code>/approve {chat_id}</code>"
         )
         await context.bot.send_message(
             chat_id=ADMIN_CHAT_ID,
             text=admin_msg,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
 
     await update.message.reply_text(
         "✅ Đã gửi yêu cầu xác nhận!\n\n"
         "Admin sẽ kích hoạt Premium cho bạn trong vòng 24h.\n"
         "Nếu bạn đã gửi ảnh bill, hãy đảm bảo gửi kèm trong cùng tin nhắn này hoặc nhắn riêng cho admin.\n\n"
-        "📞 Liên hệ: [Nhắn admin](tg://user?id=88429389288)",
-        parse_mode="Markdown"
+        f"📞 Liên hệ: <a href='tg://user?id={ADMIN_CHAT_ID}'>Nhắn admin</a>",
+        parse_mode="HTML"
     )
 
 
@@ -279,13 +279,13 @@ async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=target_chat_id,
             text=(
-                "🎉 Tài khoản của bạn đã được nâng cấp lên *Premium*!\n\n"
+                "🎉 Tài khoản của bạn đã được nâng cấp lên <b>Premium</b>!\n\n"
                 "✅ HSK 2-6 đã được mở khoá\n"
                 "✅ 2500+ từ vựng đầy đủ\n\n"
                 "Dùng /setlevel 2 để bắt đầu HSK 2 ngay!\n\n"
                 "Cảm ơn bạn đã ủng hộ HSK Bot! 🙏"
             ),
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
     except Exception:
         pass
@@ -364,9 +364,9 @@ async def mocktest(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     all_words = get_all_words()
     await update.message.reply_text(
-        f"📝 *Mock Test HSK {level}* — 10 câu\n"
+        f"📝 <b>Mock Test HSK {level}</b> — 10 câu\n"
         "Trả lời các câu hỏi bên dưới. Kết quả sẽ tổng kết sau!",
-        parse_mode="Markdown"
+        parse_mode="HTML"
     )
 
     # Store test session in context
@@ -415,10 +415,10 @@ async def _send_quiz(message, chat_id: int, word: dict, all_words: list):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     quiz_text = (
-        f"❓ Quiz: Chữ *{word['hanzi']}* ({word['pinyin']}) — HSK {word['hsk_level']}\n"
+        f"❓ Quiz: Chữ <b>{word['hanzi']}</b> ({word['pinyin']}) — HSK {word['hsk_level']}\n"
         f"Nghĩa là gì?"
     )
-    await message.reply_text(quiz_text, reply_markup=reply_markup, parse_mode="Markdown")
+    await message.reply_text(quiz_text, reply_markup=reply_markup, parse_mode="HTML")
 
 
 def _truncate(text: str, max_len: int = 20) -> str:
@@ -462,20 +462,20 @@ async def handle_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if is_correct:
         response = (
-            f"✅ Đúng rồi! *{hanzi}* = {word['meaning'] if word else '?'}\n"
+            f"✅ Đúng rồi! <b>{hanzi}</b> = {word['meaning'] if word else '?'}\n"
             f"🔥 Streak: {streak} ngày"
         )
     else:
         correct_label = labels[correct_idx]
         correct_meaning = word["meaning"] if word else "?"
         response = (
-            f"❌ Sai rồi. Đáp án đúng: *{correct_label}. {correct_meaning}*\n"
+            f"❌ Sai rồi. Đáp án đúng: <b>{correct_label}. {correct_meaning}</b>\n"
             f"Sẽ ôn lại ngày mai 📅"
         )
 
     await query.edit_message_text(
         text=f"{query.message.text}\n\n{response}",
-        parse_mode="Markdown",
+        parse_mode="HTML",
     )
 
 
