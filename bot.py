@@ -16,6 +16,8 @@ from telegram.ext import (
 import database as db
 from hsk_words import get_word_at_index, get_all_words, find_word_by_hanzi, get_words_for_level
 from content_generator import generate_lesson, generate_quiz_options
+from tts_helper import get_pronunciation_audio
+from mock_test import generate_mock_test, score_test
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -24,6 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+ADMIN_CHAT_ID = int(os.environ.get("ADMIN_CHAT_ID", "0"))
 
 
 # ──────────────────────────────────────────────
@@ -38,15 +41,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sub = db.get_subscriber(chat_id)
     level = sub["current_hsk_level"] if sub else 1
 
+    plan = db.get_user_plan(chat_id)
+    plan_badge = "💎 Premium" if plan == "premium" else "🆓 Basic"
+
     welcome_text = (
         f"🎉 Chào mừng {user.first_name} đến với HSK Daily Bot!\n\n"
-        f"📚 Bạn đang học: HSK {level}\n\n"
+        f"📚 Cấp độ: HSK {level} | Gói: {plan_badge}\n\n"
         "Mỗi ngày lúc 7h sáng, bot sẽ gửi 1 chữ Hán mới kèm chiết tự & quiz.\n\n"
         "📋 Các lệnh:\n"
         "/progress — Xem tiến độ học\n"
         "/review — Ôn tập từ đã học\n"
         "/quiz — Quiz từ hôm nay\n"
-        "/setlevel 1 đến 6 — Đổi cấp độ HSK\n"
+        "/setlevel 1-6 — Đổi cấp độ HSK\n"
+        "/premium — Nâng cấp Premium (HSK 2-6, 59k/tháng)\n"
+        "/say [chữ] — Nghe phát âm TTS 🔊 (Premium)\n"
+        "/mocktest — Mock test HSK 10 câu (Premium)\n"
         "/stop — Dừng nhận bài học\n\n"
         "Chúc bạn học tốt! 加油 🔥"
     )
@@ -160,12 +169,214 @@ async def setlevel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Cấp độ hợp lệ từ 1 đến 6.")
         return
 
+    plan = db.get_user_plan(chat_id)
+    if level >= 2 and plan != "premium":
+        await update.message.reply_text(
+            "🔒 HSK 2-6 dành cho thành viên Premium.\n\n"
+            "💎 Nâng cấp Premium để:\n"
+            "• Học HSK 2, 3, 4, 5, 6\n"
+            "• 2500+ từ vựng đầy đủ\n"
+            "• Spaced repetition thông minh\n"
+            "• Phát âm TTS\n\n"
+            "📩 Nhắn /premium để xem chi tiết và đăng ký!"
+        )
+        return
+
     db.update_hsk_level(chat_id, level)
     await update.message.reply_text(
         f"✅ Đã chuyển sang HSK {level}!\n"
         f"Bạn sẽ học từ đầu danh sách HSK {level}.\n"
         "Nhắn /quiz để bắt đầu ngay!"
     )
+
+
+async def premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show premium info and payment instructions."""
+    chat_id = update.effective_chat.id
+    plan = db.get_user_plan(chat_id)
+
+    if plan == "premium":
+        await update.message.reply_text(
+            "💎 Bạn đang là thành viên Premium!\n\n"
+            "✅ HSK 1-6 đã được mở khoá\n"
+            "✅ Từ vựng nâng cao 500+ chữ\n"
+            "✅ Ôn tập không giới hạn\n\n"
+            "Cảm ơn bạn đã ủng hộ! 🙏"
+        )
+        return
+
+    await update.message.reply_text(
+        "💎 *Nâng cấp Premium — HSK Bot*\n\n"
+        "🆓 *Gói Free (miễn phí):*\n"
+        "• HSK 1: 150 từ cơ bản\n"
+        "• Quiz hàng ngày\n"
+        "• Streak tracking\n\n"
+        "👑 *Gói Premium — 59\.000đ/tháng:*\n"
+        "• HSK 1–6 đầy đủ \(2500\+ từ\)\n"
+        "• Phát âm TTS mỗi từ\n"
+        "• Spaced Repetition thông minh\n"
+        "• Mock test chuẩn HSK\n"
+        "• Progress analytics chi tiết\n\n"
+        "💳 *Thanh toán:*\n"
+        "Chuyển khoản 59\.000đ\n"
+        "MB Bank: 5100150678999\n"
+        "Nội dung: `HSK [username Telegram của bạn]`\n\n"
+        "Sau khi chuyển khoản → nhắn /confirm \+ ảnh bill\n\n"
+        "📞 Hỗ trợ: [Nhắn admin](tg://user?id=88429389288)",
+        parse_mode="MarkdownV2"
+    )
+
+
+async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """User confirms payment — forward to admin."""
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    plan = db.get_user_plan(chat_id)
+
+    if plan == "premium":
+        await update.message.reply_text("💎 Tài khoản của bạn đã là Premium rồi!")
+        return
+
+    if ADMIN_CHAT_ID:
+        admin_msg = (
+            f"💳 *Yêu cầu nâng cấp Premium*\n\n"
+            f"User: {user.first_name} (@{user.username or 'N/A'})\n"
+            f"Chat ID: `{chat_id}`\n\n"
+            f"Để kích hoạt, dùng lệnh:\n"
+            f"`/approve {chat_id}`"
+        )
+        await context.bot.send_message(
+            chat_id=ADMIN_CHAT_ID,
+            text=admin_msg,
+            parse_mode="Markdown"
+        )
+
+    await update.message.reply_text(
+        "✅ Đã gửi yêu cầu xác nhận!\n\n"
+        "Admin sẽ kích hoạt Premium cho bạn trong vòng 24h.\n"
+        "Nếu bạn đã gửi ảnh bill, hãy đảm bảo gửi kèm trong cùng tin nhắn này hoặc nhắn riêng cho admin.\n\n"
+        "📞 Liên hệ: [Nhắn admin](tg://user?id=88429389288)",
+        parse_mode="Markdown"
+    )
+
+
+async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to approve premium for a user."""
+    chat_id = update.effective_chat.id
+
+    if chat_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
+        return
+
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Dùng: /approve [chat_id]\nVí dụ: /approve 123456789")
+        return
+
+    target_chat_id = int(context.args[0])
+    db.set_user_plan(target_chat_id, "premium")
+
+    try:
+        await context.bot.send_message(
+            chat_id=target_chat_id,
+            text=(
+                "🎉 Tài khoản của bạn đã được nâng cấp lên *Premium*!\n\n"
+                "✅ HSK 2-6 đã được mở khoá\n"
+                "✅ 2500+ từ vựng đầy đủ\n\n"
+                "Dùng /setlevel 2 để bắt đầu HSK 2 ngay!\n\n"
+                "Cảm ơn bạn đã ủng hộ HSK Bot! 🙏"
+            ),
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+    await update.message.reply_text(f"✅ Đã kích hoạt Premium cho chat_id: {target_chat_id}")
+
+
+async def revoke(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to revoke premium."""
+    chat_id = update.effective_chat.id
+
+    if chat_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("❌ Bạn không có quyền dùng lệnh này.")
+        return
+
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Dùng: /revoke [chat_id]")
+        return
+
+    target_chat_id = int(context.args[0])
+    db.set_user_plan(target_chat_id, "basic")
+    await update.message.reply_text(f"✅ Đã thu hồi Premium của chat_id: {target_chat_id}")
+
+
+async def say(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Send TTS pronunciation audio for a Chinese word."""
+    chat_id = update.effective_chat.id
+    plan = db.get_user_plan(chat_id)
+
+    if plan != "premium":
+        await update.message.reply_text(
+            "🔒 Tính năng phát âm TTS dành cho Premium.\n"
+            "Nhắn /premium để nâng cấp!"
+        )
+        return
+
+    if not context.args:
+        await update.message.reply_text("Dùng: /say [chữ Hán]\nVí dụ: /say 你好")
+        return
+
+    hanzi = context.args[0]
+    audio = get_pronunciation_audio(hanzi)
+    if audio:
+        import io
+        await update.message.reply_voice(
+            voice=io.BytesIO(audio),
+            caption=f"🔊 Phát âm: {hanzi}"
+        )
+    else:
+        await update.message.reply_text("❌ Không thể tạo audio lúc này. Thử lại sau!")
+
+
+async def mocktest(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start a 20-question HSK mock test."""
+    chat_id = update.effective_chat.id
+    plan = db.get_user_plan(chat_id)
+
+    if plan != "premium":
+        await update.message.reply_text(
+            "🔒 Mock test dành cho Premium.\n"
+            "Nhắn /premium để nâng cấp!"
+        )
+        return
+
+    sub = db.get_subscriber(chat_id)
+    if not sub:
+        await update.message.reply_text("Bạn chưa đăng ký. Nhắn /start trước!")
+        return
+
+    level = sub["current_hsk_level"]
+    questions = generate_mock_test(level, num_questions=10)
+
+    if not questions:
+        await update.message.reply_text("Không đủ từ để tạo mock test. Thử /setlevel khác!")
+        return
+
+    all_words = get_all_words()
+    await update.message.reply_text(
+        f"📝 *Mock Test HSK {level}* — 10 câu\n"
+        "Trả lời các câu hỏi bên dưới. Kết quả sẽ tổng kết sau!",
+        parse_mode="Markdown"
+    )
+
+    # Store test session in context
+    context.user_data["mocktest_total"] = len(questions)
+    context.user_data["mocktest_correct"] = 0
+    context.user_data["mocktest_answered"] = 0
+    context.user_data["in_mocktest"] = True
+
+    for q in questions:
+        await _send_quiz(update.message, chat_id, q["word"], all_words)
 
 
 # ──────────────────────────────────────────────
@@ -282,6 +493,12 @@ def main():
     app.add_handler(CommandHandler("quiz", quiz))
     app.add_handler(CommandHandler("setlevel", setlevel))
     app.add_handler(CallbackQueryHandler(handle_quiz_answer, pattern=r"^quiz_"))
+    app.add_handler(CommandHandler("premium", premium))
+    app.add_handler(CommandHandler("confirm", confirm))
+    app.add_handler(CommandHandler("approve", approve))
+    app.add_handler(CommandHandler("revoke", revoke))
+    app.add_handler(CommandHandler("say", say))
+    app.add_handler(CommandHandler("mocktest", mocktest))
 
     logger.info("Bot started. Polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

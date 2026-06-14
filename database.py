@@ -349,5 +349,43 @@ def get_streak(chat_id: int) -> int:
     return row[0] or 0
 
 
+def set_user_plan(chat_id: int, plan: str):
+    """Set user plan: 'basic' or 'premium'"""
+    p = _placeholder()
+    conn = _get_conn()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE subscribers SET plan = {p} WHERE chat_id = {p}", (plan, chat_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def get_user_plan(chat_id: int) -> str:
+    """Return 'basic' or 'premium'. Default 'basic'."""
+    p = _placeholder()
+    conn = _get_conn()
+    cur = conn.cursor()
+    cur.execute(f"SELECT plan FROM subscribers WHERE chat_id = {p}", (chat_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if row is None:
+        return "basic"
+    return row[0] or "basic"
+
+
+def get_all_premium_subscribers() -> list:
+    """Return all active premium subscribers."""
+    conn = _get_conn()
+    cur = conn.cursor()
+    active_val = "TRUE" if USE_POSTGRES else "1"
+    cur.execute(f"SELECT * FROM subscribers WHERE active = {active_val} AND plan = 'premium'")
+    rows = cur.fetchall()
+    result = [_row_to_dict(r, cur) for r in rows]
+    cur.close()
+    conn.close()
+    return result
+
+
 # Initialize DB on import
 init_db()

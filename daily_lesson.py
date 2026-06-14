@@ -358,8 +358,10 @@ def _gh_var_index(chat_id: int) -> int:
 
 
 def _write_index_update(chat_id: int, new_index: int):
-    """Append updated index to /tmp/word_index_updates.txt for workflow to persist."""
-    with open("/tmp/word_index_updates.txt", "a") as f:
+    """Append updated index to a temp file for workflow to persist."""
+    import tempfile
+    path = os.path.join(tempfile.gettempdir(), "word_index_updates.txt")
+    with open(path, "a") as f:
         f.write(f"{chat_id}={new_index}\n")
 
 
