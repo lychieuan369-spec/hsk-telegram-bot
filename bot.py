@@ -501,18 +501,26 @@ def main():
     app.add_handler(CommandHandler("say", say))
     app.add_handler(CommandHandler("mocktest", mocktest))
 
-    # Start Casso webhook server in background thread if PORT is set
-    port = int(os.environ.get("PORT", 0))
-    if port:
+    # Start Casso webhook server in background thread
+    port_str = os.environ.get("PORT", "")
+    logger.info(f"PORT env var = '{port_str}'")
+    try:
+        port = int(port_str) if port_str else 8000
         import uvicorn
         from webhook import app as webhook_app
 
         def run_webhook():
-            uvicorn.run(webhook_app, host="0.0.0.0", port=port, log_level="warning")
+            try:
+                logger.info(f"Uvicorn starting on 0.0.0.0:{port}")
+                uvicorn.run(webhook_app, host="0.0.0.0", port=port, log_level="info")
+            except Exception as e:
+                logger.error(f"Uvicorn failed: {e}")
 
         t = threading.Thread(target=run_webhook, daemon=True)
         t.start()
-        logger.info(f"Webhook server started on port {port}")
+        logger.info(f"Webhook thread started on port {port}")
+    except Exception as e:
+        logger.error(f"Failed to start webhook server: {e}")
 
     logger.info("Bot started. Polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
