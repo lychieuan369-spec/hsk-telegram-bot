@@ -4,6 +4,7 @@ Uses python-telegram-bot v20 (async).
 """
 
 import os
+import threading
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -499,6 +500,19 @@ def main():
     app.add_handler(CommandHandler("revoke", revoke))
     app.add_handler(CommandHandler("say", say))
     app.add_handler(CommandHandler("mocktest", mocktest))
+
+    # Start Casso webhook server in background thread if PORT is set
+    port = int(os.environ.get("PORT", 0))
+    if port:
+        import uvicorn
+        from webhook import app as webhook_app
+
+        def run_webhook():
+            uvicorn.run(webhook_app, host="0.0.0.0", port=port, log_level="warning")
+
+        t = threading.Thread(target=run_webhook, daemon=True)
+        t.start()
+        logger.info(f"Webhook server started on port {port}")
 
     logger.info("Bot started. Polling...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
