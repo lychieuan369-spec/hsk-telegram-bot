@@ -8,6 +8,7 @@ import os
 import json
 import re
 import random
+from hsk_grammar import find_grammar_by_hanzi, get_random_grammar
 from openai import OpenAI
 
 _client = None
@@ -93,6 +94,51 @@ Ví dụ:
     content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
     content = content.replace('**', '')
     return content
+
+
+def generate_grammar_section(word: dict) -> str:
+    """
+    Return grammar section string for a word.
+    HSK 1-3: use static hsk_grammar.py data.
+    HSK 4-6: generate dynamically via Groq.
+    """
+    level = word.get("hsk_level", 1)
+    hanzi = word["hanzi"]
+
+    if level <= 3:
+        point = find_grammar_by_hanzi(hanzi, level)
+        if not point:
+            point = get_random_grammar(level)
+        if point:
+            return (
+                f"\n\n📐 <b>Ngữ pháp liên quan:</b>\n"
+                f"• Pattern: <code>{point['pattern']}</code>\n"
+                f"• {point['explanation']}\n"
+                f"• Ví dụ: {point['example_cn']}\n"
+                f"  → {point['example_vn']}"
+            )
+        return ""
+    else:
+        # Premium: Groq generates grammar dynamically
+        try:
+            prompt = (
+                f"Chữ Hán: {hanzi} ({word.get('pinyin','')}) — HSK {level}\n"
+                f"Nghĩa: {word.get('meaning','')}\n\n"
+                "Viết 1 grammar point ngắn liên quan đến chữ này (tiếng Việt), gồm:\n"
+                "- Pattern (công thức ngữ pháp)\n"
+                "- Giải thích 1 câu\n"
+                "- 1 câu ví dụ tiếng Trung + nghĩa tiếng Việt\n"
+                "Giữ ngắn gọn, tối đa 4 dòng."
+            )
+            resp = get_client().chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                max_tokens=200,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            grammar_text = resp.choices[0].message.content.strip()
+            return f"\n\n📐 <b>Ngữ pháp:</b>\n{grammar_text}"
+        except Exception:
+            return ""
 
 
 def generate_quiz_options(word: dict, all_words: list) -> dict:

@@ -11,7 +11,7 @@ import logging
 
 import database as db
 from hsk_words import get_word_at_index, get_all_words
-from content_generator import generate_lesson, generate_quiz_options
+from content_generator import generate_lesson, generate_quiz_options, generate_grammar_section
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -317,6 +317,11 @@ def process_subscriber(sub: dict, all_words: list):
             f"📖 Chữ hôm nay: <b>{word['hanzi']}</b> ({word['pinyin']}) — HSK {word['hsk_level']}\n\n"
             f"📝 Nghĩa: {word['meaning']}"
         )
+
+    # Append grammar section to lesson
+    grammar_section = generate_grammar_section(word)
+    if grammar_section:
+        lesson_text += grammar_section
 
     ok = send_message(chat_id, lesson_text)
     if not ok:
