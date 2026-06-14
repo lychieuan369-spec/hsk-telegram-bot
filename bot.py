@@ -206,24 +206,24 @@ async def premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     await update.message.reply_text(
-        "💎 *Nâng cấp Premium — HSK Bot*\n\n"
-        "🆓 *Gói Free (miễn phí):*\n"
+        "💎 <b>Nâng cấp Premium — HSK Bot</b>\n\n"
+        "🆓 <b>Gói Free (miễn phí):</b>\n"
         "• HSK 1: 150 từ cơ bản\n"
         "• Quiz hàng ngày\n"
         "• Streak tracking\n\n"
-        "👑 *Gói Premium — 59\.000đ/tháng:*\n"
-        "• HSK 1–6 đầy đủ \(2500\+ từ\)\n"
+        "👑 <b>Gói Premium — 59.000đ/tháng:</b>\n"
+        "• HSK 1-6 đầy đủ (2500+ từ)\n"
         "• Phát âm TTS mỗi từ\n"
         "• Spaced Repetition thông minh\n"
         "• Mock test chuẩn HSK\n"
         "• Progress analytics chi tiết\n\n"
-        "💳 *Thanh toán:*\n"
-        "Chuyển khoản 59\.000đ\n"
+        "💳 <b>Thanh toán:</b>\n"
+        "Chuyển khoản 59.000đ\n"
         "MB Bank: 5100150678999\n"
-        "Nội dung: `HSK [username Telegram của bạn]`\n\n"
-        "Sau khi chuyển khoản → nhắn /confirm \+ ảnh bill\n\n"
-        "📞 Hỗ trợ: [Nhắn admin](tg://user?id=88429389288)",
-        parse_mode="MarkdownV2"
+        "Nội dung: <code>HSK [username Telegram của bạn]</code>\n\n"
+        "Sau khi chuyển khoản → nhắn /confirm + ảnh bill\n\n"
+        "📞 Hỗ trợ: <a href='tg://user?id=8842938928'>Nhắn admin</a>",
+        parse_mode="HTML"
     )
 
 
