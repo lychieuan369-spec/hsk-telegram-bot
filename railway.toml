@@ -3,3 +3,6 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "python bot.py"
+
+[services.hsk-daily-cron.deploy]
+startCommand = "python daily_lesson.py"
