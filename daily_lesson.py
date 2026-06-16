@@ -121,7 +121,7 @@ def send_stroke_order(chat_id: int, word: dict) -> bool:
         return False
 
     hanzi = word['hanzi']
-    char = hanzi[0]
+    char = hanzi  # show full word (北京 not just 北)
     pinyin = word.get('pinyin', '')
     meaning = word.get('meaning', '')
     hsk_level = word.get('hsk_level', 1)
@@ -184,8 +184,15 @@ def send_stroke_order(chat_id: int, word: dict) -> bool:
     # Border
     draw.rectangle([2, 2, img_size - 3, img_size - 80 - 2], outline=accent, width=3)
 
-    # Main character
-    font_big = _get_cjk_font(200)
+    # Main character — scale font to fit full word (e.g. 北京 not just 北)
+    char_len = len(char)
+    if char_len == 1:
+        big_size = 200
+    elif char_len == 2:
+        big_size = 140
+    else:
+        big_size = 100
+    font_big = _get_cjk_font(big_size)
     if font_big is None:
         logger.warning("No CJK font; skipping character card")
         return False
@@ -221,7 +228,7 @@ def send_stroke_order(chat_id: int, word: dict) -> bool:
         draw.text((img_size - hw - 12, img_size - 68), hsk_text, fill=(255, 255, 255), font=font_small)
         # Stroke count
         if stroke_count:
-            sc_text = f"✍ {stroke_count} net"
+            sc_text = f"{stroke_count} net"
             draw.text((12, img_size - 40), sc_text, fill=(255, 255, 255), font=font_small)
 
     with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
