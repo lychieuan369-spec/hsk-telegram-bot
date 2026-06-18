@@ -6,6 +6,7 @@ Does NOT use python-telegram-bot polling; uses requests for stateless one-shot e
 
 import os
 import json
+import datetime
 import requests
 import logging
 
@@ -312,6 +313,12 @@ def process_subscriber(sub: dict, all_words: list):
         logger.warning("No word found for chat_id=%s level=%s index=%s", chat_id, level, index)
         return
 
+    today = datetime.date.today().isoformat()
+    last_sent = db.get_last_sent_date(chat_id)
+    if last_sent == today:
+        print(f"Already sent today to {chat_id}, skipping")
+        return
+
     logger.info("Sending lesson to chat_id=%s word=%s", chat_id, word["hanzi"])
 
     # 1. Generate and send lesson content via Claude
@@ -356,6 +363,7 @@ def process_subscriber(sub: dict, all_words: list):
 
     # 4. Update streak
     db.update_streak(chat_id)
+    db.update_last_sent_date(chat_id, today)
 
     logger.info("Done for chat_id=%s. Next index=%s", chat_id, new_index)
 

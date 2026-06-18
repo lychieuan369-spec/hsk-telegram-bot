@@ -96,6 +96,13 @@ def init_db():
             )
         """)
 
+    # Migration: add last_sent_date column if missing
+    try:
+        cur.execute("ALTER TABLE subscribers ADD COLUMN last_sent_date TEXT")
+        conn.commit()
+    except Exception:
+        pass  # column already exists
+
     conn.commit()
     cur.close()
     conn.close()
@@ -385,6 +392,33 @@ def get_all_premium_subscribers() -> list:
     cur.close()
     conn.close()
     return result
+
+
+def get_last_sent_date(chat_id: int) -> str:
+    p = _placeholder()
+    try:
+        conn = _get_conn()
+        cur = conn.cursor()
+        cur.execute(f"SELECT last_sent_date FROM subscribers WHERE chat_id = {p}", (chat_id,))
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return row[0] if row and row[0] else ""
+    except Exception:
+        return ""
+
+
+def update_last_sent_date(chat_id: int, date_str: str):
+    p = _placeholder()
+    try:
+        conn = _get_conn()
+        cur = conn.cursor()
+        cur.execute(f"UPDATE subscribers SET last_sent_date = {p} WHERE chat_id = {p}", (date_str, chat_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"update_last_sent_date error: {e}")
 
 
 # Initialize DB on import
