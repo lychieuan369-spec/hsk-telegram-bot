@@ -113,8 +113,9 @@ def _get_cjk_font(size: int = 160):
 
 
 _HSK1_IMAGES_MAP = None
-_HSK1_IMAGES_FOLDER = r"C:\tmp\hsk1_full\final"
-_HSK1_IMAGES_MAP_FILE = r"D:\hsk_telegram_bot\hsk1_images_map.json"
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_HSK1_IMAGES_FOLDER = os.path.join(_SCRIPT_DIR, "images", "hsk1")
+_HSK1_IMAGES_MAP_FILE = os.path.join(_SCRIPT_DIR, "hsk1_images_map.json")
 
 def _get_hsk1_image_path(hanzi: str):
     """Return path to pre-rendered image for hanzi, or None if not found."""
