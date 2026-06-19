@@ -381,6 +381,33 @@ def get_user_plan(chat_id: int) -> str:
     return row[0] or "basic"
 
 
+def get_trial_days_remaining(chat_id: int) -> int:
+    """Return days left in 30-day trial. Negative = expired. Returns 30 if no join date."""
+    sub = get_subscriber(chat_id)
+    if not sub:
+        return 30
+    plan = sub.get("plan") or "basic"
+    if plan == "premium":
+        return 999  # unlimited
+    joined_at = sub.get("joined_at")
+    if not joined_at:
+        return 30
+    try:
+        if isinstance(joined_at, str):
+            joined = date.fromisoformat(joined_at)
+        else:
+            joined = joined_at
+        days_used = (date.today() - joined).days
+        return 30 - days_used
+    except Exception:
+        return 30
+
+
+def is_trial_expired(chat_id: int) -> bool:
+    """Return True if 30-day trial has ended and user is not premium."""
+    return get_trial_days_remaining(chat_id) < 0
+
+
 def get_all_premium_subscribers() -> list:
     """Return all active premium subscribers."""
     conn = _get_conn()

@@ -43,11 +43,22 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     level = sub["current_hsk_level"] if sub else 1
 
     plan = db.get_user_plan(chat_id)
-    plan_badge = "💎 Premium" if plan == "premium" else "🆓 Basic"
+    days_left = db.get_trial_days_remaining(chat_id)
+
+    if plan == "premium":
+        plan_badge = "💎 Premium"
+        trial_line = ""
+    elif days_left >= 0:
+        plan_badge = f"🆓 Dùng thử ({days_left} ngày còn lại)"
+        trial_line = f"\n⚠️ Học thử miễn phí còn <b>{days_left} ngày</b>. /premium để tiếp tục sau đó.\n"
+    else:
+        plan_badge = "⏰ Hết hạn dùng thử"
+        trial_line = "\n⛔ Kỳ học thử đã kết thúc. Nhắn /premium để tiếp tục học!\n"
 
     welcome_text = (
         f"🎉 Chào mừng {user.first_name} đến với HSK Daily Bot!\n\n"
-        f"📚 Cấp độ: HSK {level} | Gói: {plan_badge}\n\n"
+        f"📚 Cấp độ: HSK {level} | Gói: {plan_badge}\n"
+        f"{trial_line}\n"
         "Mỗi ngày lúc 7h sáng, bot sẽ gửi 1 chữ Hán mới kèm chiết tự & quiz.\n\n"
         "📋 Các lệnh:\n"
         "/progress — Xem tiến độ học\n"
@@ -94,12 +105,21 @@ async def progress(update: Update, context: ContextTypes.DEFAULT_TYPE):
     level_words = get_words_for_level(level)
     total_in_level = len(level_words)
 
+    days_left = db.get_trial_days_remaining(chat_id)
+    if days_left == 999:
+        trial_line = "💎 Gói: Premium\n"
+    elif days_left >= 0:
+        trial_line = f"⏳ Dùng thử: còn {days_left} ngày\n"
+    else:
+        trial_line = "⛔ Hết hạn dùng thử — /premium để tiếp tục\n"
+
     text = (
         f"📊 Tiến độ học của bạn\n\n"
         f"🎯 Cấp độ hiện tại: HSK {level}\n"
         f"📖 Đã học: {word_index}/{total_in_level} từ (HSK {level})\n"
         f"🔥 Streak: {streak} ngày liên tiếp\n"
-        f"✅ Độ chính xác quiz: {accuracy}% ({correct}/{total})\n\n"
+        f"✅ Độ chính xác quiz: {accuracy}% ({correct}/{total})\n"
+        f"{trial_line}\n"
         f"Tiếp tục cố gắng nhé! 💪"
     )
     await update.message.reply_text(text)

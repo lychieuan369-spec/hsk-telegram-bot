@@ -353,6 +353,27 @@ def process_subscriber(sub: dict, all_words: list):
         logger.warning("No word found for chat_id=%s level=%s index=%s", chat_id, level, index)
         return
 
+    # Trial check — block after 30 days
+    if db.is_trial_expired(chat_id):
+        send_message(
+            chat_id,
+            "⏰ <b>Kỳ học thử 30 ngày của bạn đã kết thúc!</b>\n\n"
+            "Bạn đã học được những từ Hán đầu tiên rất tốt 🎉\n\n"
+            "💎 <b>Tiếp tục với Premium — 59.000đ/tháng:</b>\n"
+            "• HSK 1-6 đầy đủ (500+ từ HSK1, 2500+ từ tổng)\n"
+            "• Flashcard minh hoạ đẹp mắt\n"
+            "• Phát âm TTS chuẩn\n"
+            "• Mock test chuẩn HSK\n"
+            "• Spaced repetition thông minh\n\n"
+            "💳 <b>Thanh toán:</b>\n"
+            "MB Bank: 5100150678999\n"
+            "Nội dung: <code>HSK [username Telegram]</code>\n\n"
+            "Sau khi chuyển khoản → nhắn /confirm cho bot\n"
+            "📞 Hỗ trợ: @lychieuan369"
+        )
+        logger.info("Trial expired for chat_id=%s, skipping lesson.", chat_id)
+        return
+
     today = datetime.date.today().isoformat()
     last_sent = db.get_last_sent_date(chat_id)
     if last_sent == today:
