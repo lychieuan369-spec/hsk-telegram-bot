@@ -64,8 +64,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/progress — Xem tiến độ học\n"
         "/review — Ôn tập từ đã học\n"
         "/quiz — Quiz từ hôm nay\n"
-        "/setlevel 1-6 — Đổi cấp độ HSK\n"
-        "/premium — Nâng cấp Premium (HSK 2-6, 59k/tháng)\n"
+        "/setlevel 1-9 — Đổi cấp độ HSK\n"
+        "/premium — Nâng cấp Premium (HSK 2-9, 89k/tháng)\n"
         "/say [chữ] — Nghe phát âm TTS 🔊 (Premium)\n"
         "/mocktest — Mock test HSK 10 câu (Premium)\n"
         "/stop — Dừng nhận bài học\n\n"
@@ -182,21 +182,21 @@ async def setlevel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
     if not context.args or not context.args[0].isdigit():
-        await update.message.reply_text("Dùng: /setlevel 1 đến 6\nVí dụ: /setlevel 3")
+        await update.message.reply_text("Dùng: /setlevel 1 đến 9\nVí dụ: /setlevel 3")
         return
 
     level = int(context.args[0])
-    if level < 1 or level > 6:
-        await update.message.reply_text("Cấp độ hợp lệ từ 1 đến 6.")
+    if level < 1 or level > 9:
+        await update.message.reply_text("Cấp độ hợp lệ từ 1 đến 9.")
         return
 
     plan = db.get_user_plan(chat_id)
     if level >= 2 and plan != "premium":
         await update.message.reply_text(
-            "🔒 HSK 2-6 dành cho thành viên Premium.\n\n"
+            "🔒 HSK 2-9 dành cho thành viên Premium.\n\n"
             "💎 Nâng cấp Premium để:\n"
-            "• Học HSK 2, 3, 4, 5, 6\n"
-            "• 2500+ từ vựng đầy đủ\n"
+            "• Học HSK 2, 3, 4, 5, 6, 7, 8, 9\n"
+            "• 5000+ từ vựng đầy đủ\n"
             "• Spaced repetition thông minh\n"
             "• Phát âm TTS\n\n"
             "📩 Nhắn /premium để xem chi tiết và đăng ký!"
@@ -219,7 +219,7 @@ async def premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if plan == "premium":
         await update.message.reply_text(
             "💎 Bạn đang là thành viên Premium!\n\n"
-            "✅ HSK 1-6 đã được mở khoá\n"
+            "✅ HSK 1-9 đã được mở khoá\n"
             "✅ Từ vựng nâng cao 500+ chữ\n"
             "✅ Ôn tập không giới hạn\n\n"
             "Cảm ơn bạn đã ủng hộ! 🙏"
@@ -232,14 +232,14 @@ async def premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• HSK 1: 150 từ cơ bản\n"
         "• Quiz hàng ngày\n"
         "• Streak tracking\n\n"
-        "👑 <b>Gói Premium — 59.000đ/tháng:</b>\n"
-        "• HSK 1-6 đầy đủ (2500+ từ)\n"
+        "👑 <b>Gói Premium — 89.000đ/tháng:</b>\n"
+        "• HSK 1-9 đầy đủ (5000+ từ)\n"
         "• Phát âm TTS mỗi từ\n"
         "• Spaced Repetition thông minh\n"
         "• Mock test chuẩn HSK\n"
         "• Progress analytics chi tiết\n\n"
         "💳 <b>Thanh toán:</b>\n"
-        "Chuyển khoản 59.000đ\n"
+        "Chuyển khoản 89.000đ\n"
         "MB Bank: 5100150678999\n"
         "Nội dung: <code>HSK [username Telegram của bạn]</code>\n\n"
         "Sau khi chuyển khoản → nhắn /confirm + ảnh bill\n\n"
@@ -301,8 +301,8 @@ async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=target_chat_id,
             text=(
                 "🎉 Tài khoản của bạn đã được nâng cấp lên <b>Premium</b>!\n\n"
-                "✅ HSK 2-6 đã được mở khoá\n"
-                "✅ 2500+ từ vựng đầy đủ\n\n"
+                "✅ HSK 2-9 đã được mở khoá\n"
+                "✅ 5000+ từ vựng đầy đủ\n\n"
                 "Dùng /setlevel 2 để bắt đầu HSK 2 ngay!\n\n"
                 "Cảm ơn bạn đã ủng hộ HSK Bot! 🙏"
             ),
