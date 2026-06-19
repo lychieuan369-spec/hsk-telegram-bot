@@ -69,7 +69,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/say [chữ] — Nghe phát âm TTS 🔊 (Premium)\n"
         "/mocktest — Mock test HSK 10 câu (Premium)\n"
         "/stop — Dừng nhận bài học\n\n"
-        "Chúc bạn học tốt! 加油 🔥"
+        "Chúc bạn học tốt! 加油 🔥\n"
+        "v2.0 — HSK 1-9"
     )
     await update.message.reply_text(welcome_text)
 
