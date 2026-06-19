@@ -112,6 +112,27 @@ def _get_cjk_font(size: int = 160):
     return None
 
 
+_HSK1_IMAGES_MAP = None
+_HSK1_IMAGES_FOLDER = r"C:\tmp\hsk1_full\final"
+_HSK1_IMAGES_MAP_FILE = r"D:\hsk_telegram_bot\hsk1_images_map.json"
+
+def _get_hsk1_image_path(hanzi: str):
+    """Return path to pre-rendered image for hanzi, or None if not found."""
+    global _HSK1_IMAGES_MAP
+    import json, os as _os
+    if _HSK1_IMAGES_MAP is None:
+        try:
+            with open(_HSK1_IMAGES_MAP_FILE, encoding='utf-8') as f:
+                _HSK1_IMAGES_MAP = json.load(f)
+        except Exception:
+            _HSK1_IMAGES_MAP = {}
+    filename = _HSK1_IMAGES_MAP.get(hanzi)
+    if not filename:
+        return None
+    path = _os.path.join(_HSK1_IMAGES_FOLDER, filename + '.png')
+    return path if _os.path.exists(path) else None
+
+
 def send_stroke_order(chat_id: int, word: dict) -> bool:
     """Send a styled character card with stroke count and color."""
     import tempfile, os as _os
@@ -122,6 +143,24 @@ def send_stroke_order(chat_id: int, word: dict) -> bool:
         return False
 
     hanzi = word['hanzi']
+
+    # Use pre-rendered image if available
+    pre_path = _get_hsk1_image_path(hanzi)
+    if pre_path:
+        pinyin = word.get('pinyin', '')
+        meaning = word.get('meaning', '')
+        url = f"{TELEGRAM_API}/sendPhoto"
+        with open(pre_path, 'rb') as img_file:
+            resp = requests.post(
+                url,
+                data={"chat_id": chat_id, "caption": f"✍️ {hanzi} ({pinyin}) — {meaning}"},
+                files={"photo": img_file},
+                timeout=30,
+            )
+        if not resp.ok:
+            logger.warning("sendPhoto pre-rendered failed for %s: %s", chat_id, resp.text)
+            return False
+        return True
     char = hanzi  # show full word (北京 not just 北)
     pinyin = word.get('pinyin', '')
     meaning = word.get('meaning', '')
