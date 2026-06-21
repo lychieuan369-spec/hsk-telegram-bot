@@ -398,14 +398,14 @@ def process_subscriber(sub: dict, all_words: list):
     if grammar_section:
         lesson_text += grammar_section
 
-    # 1b. Send flashcard first (visual hook)
-    send_stroke_order(chat_id, word)
-
-    # 1c. Send lesson text
+    # 1b. Send lesson text
     ok = send_message(chat_id, lesson_text)
     if not ok:
         logger.error("Failed to send lesson to chat_id=%s", chat_id)
         return
+
+    # 1c. Send flashcard image
+    send_stroke_order(chat_id, word)
 
     # 1d. Send pronunciation audio
     send_voice(chat_id, word)
