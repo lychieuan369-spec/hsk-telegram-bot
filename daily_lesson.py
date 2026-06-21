@@ -114,7 +114,7 @@ def _get_cjk_font(size: int = 160):
 
 _HSK1_IMAGES_MAP = None
 _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-_HSK1_IMAGES_FOLDER = os.path.join(_SCRIPT_DIR, "images", "hsk1")
+_HSK1_IMAGES_FOLDER = os.path.join(_SCRIPT_DIR, "images", "HSK! 300")
 _HSK1_IMAGES_MAP_FILE = os.path.join(_SCRIPT_DIR, "hsk1_images_map.json")
 
 def _get_hsk1_image_path(hanzi: str):
@@ -398,16 +398,17 @@ def process_subscriber(sub: dict, all_words: list):
     if grammar_section:
         lesson_text += grammar_section
 
+    # 1b. Send flashcard first (visual hook)
+    send_stroke_order(chat_id, word)
+
+    # 1c. Send lesson text
     ok = send_message(chat_id, lesson_text)
     if not ok:
         logger.error("Failed to send lesson to chat_id=%s", chat_id)
         return
 
-    # 1b. Send pronunciation audio
+    # 1d. Send pronunciation audio
     send_voice(chat_id, word)
-
-    # 1c. Send stroke order image
-    send_stroke_order(chat_id, word)
 
     # 2. Send quiz
     send_quiz(chat_id, word, all_words)
