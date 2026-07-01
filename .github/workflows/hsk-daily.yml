@@ -2,9 +2,7 @@ name: HSK Daily Lesson
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # 7:00 AM ICT (primary)
-    - cron: '0 1 * * *'   # 8:00 AM ICT (backup 1)
-    - cron: '30 1 * * *'  # 8:30 AM ICT (backup 2)
+    - cron: '0 0 * * *'   # 7:00 AM ICT
   workflow_dispatch:
 
 permissions:
