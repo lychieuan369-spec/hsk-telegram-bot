@@ -47,8 +47,7 @@ def send_voice(chat_id: int, word: dict) -> bool:
     """Send TTS pronunciation audio for a Chinese word."""
     import tempfile
     from gtts import gTTS
-    # Speak hanzi in Chinese, then pinyin in Vietnamese
-    tts_text = f"{word['hanzi']}，{word['pinyin']}"
+    tts_text = word['hanzi']
     tts = gTTS(text=tts_text, lang='zh-cn', slow=True)
     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
         tmp_path = f.name
