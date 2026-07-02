@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-BOT_TOKEN = "8738410189:AAHVBb50cGSk4-GAhcwWl-6f9LC8huhz6M8"
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 CASSO_SECRET_TOKEN = os.environ.get("CASSO_SECRET_TOKEN", "")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"

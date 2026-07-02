@@ -505,8 +505,18 @@ async def handle_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # Main
 # ──────────────────────────────────────────────
 
+async def _post_init(application):
+    await application.bot.delete_webhook(drop_pending_updates=False)
+    logger.info("Webhook deleted, polling can start cleanly.")
+
+
+async def _error_handler(update, context):
+    logger.error(f"Unhandled error: {context.error}", exc_info=context.error)
+
+
 def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).post_init(_post_init).build()
+    app.add_error_handler(_error_handler)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("stop", stop))
